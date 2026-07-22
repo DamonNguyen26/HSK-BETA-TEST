@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Game Center</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="profile">
+        <div class="avatar">👤</div>
+        <div class="info">
+            <h3 id="playerName">Damon Nguyen</h3>
+            <p id="playerAge">18 tuổi</p>
+        </div>
+        <div class="player-status">
+            <div id="currentHSK">HSK 1</div>
+            <div id="playerRank">Đồng</div>
+        </div>
+    </div>
+
+    <button class="back-btn" onclick="location.href='index.html'">← Quay lại</button>
+    <h2>🎮 MINI GAME CENTER</h2>
+    <br>
+
+    <div class="game-card speed" onclick="location.href='game1.html'">
+        <h3>⚡ THẦN TỐC HSK</h3>
+        <p>Trắc nghiệm tốc độ</p>
+        <span>+EXP</span>
+    </div>
+
+    <div class="game-card memory disabled-game">
+        <h3>🧠 GHI NHỚ</h3>
+        <p>Lật thẻ từ vựng</p>
+        <span>Đang phát triển</span>
+    </div>
+
+    <div class="game-card rain disabled-game">
+        <h3>☔ MƯA TỪ VỰNG</h3>
+        <p>Gõ từ rơi xuống</p>
+        <span>Đang phát triển</span>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="nav-btn" onclick="location.href='index.html'">
+        🏠<br>Trang chủ
+    </div>
+    <div class="nav-btn logo-btn" onclick="location.href='about.html'">
+        <img src="pic/logo.png">
+    </div>
+    <div class="nav-btn" onclick="location.href='setting.html'">
+        ⚙️<br>Cài đặt
+    </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Từ Vựng HSK</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="profile">
+        <div class="avatar">👤</div>
+        <div class="info">
+            <h3 id="playerName">Damon Nguyen</h3>
+            <p id="playerAge">18 tuổi</p>
+        </div>
+        <div class="player-status">
+            <div id="currentHSK">HSK 1</div>
+            <div id="playerRank">Đồng</div>
+        </div>
+    </div>
+
+    <button class="back-btn" onclick="location.href='index.html'">← Quay lại</button>
+    <h2>📚 TỪ VỰNG HSK</h2>
+
+    <div class="hsk-tabs">
+      <div class="hsk-tab active-tab" onclick="changeHSK(1,this)">HSK 1</div>
+      <div class="hsk-tab" onclick="changeHSK(2,this)">HSK 2</div>
+      <div class="hsk-tab" onclick="changeHSK(3,this)">HSK 3</div>
+      <div class="hsk-tab" onclick="changeHSK(4,this)">HSK 4</div>
+      <div class="hsk-tab" onclick="changeHSK(5,this)">HSK 5</div>
+      <div class="hsk-tab" onclick="changeHSK(6,this)">HSK 6</div>
+    </div>
+
+    <div id="devMessage" class="dev-message" style="display:none;"></div>
+    <div id="vocabList"></div>
+</div>
+
+<div class="footer">
+    <div class="nav-btn" onclick="location.href='index.html'">
+        🏠<br>Trang chủ
+    </div>
+    <div class="nav-btn logo-btn" onclick="location.href='about.html'">
+        <img src="pic/logo.png">
+    </div>
+    <div class="nav-btn" onclick="location.href='setting.html'">
+        ⚙️<br>Cài đặt
+    </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
