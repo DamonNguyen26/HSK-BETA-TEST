@@ -1,59 +1,65 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HSK Game</title>
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK Game - Trang Chủ</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-    <div class="profile">
-      <div class="avatar">👤</div>
-      <div class="info">
-        <h3 id="playerName">Damon Nguyen</h3>
-        <p id="playerAge">18 tuổi</p>
-      </div>
-      <div class="player-status">
-        <div id="currentHSK">HSK 1</div>
-        <div id="playerRank">Đồng</div>
-      </div>
+    <div class="header-fixed">
+        <div class="profile">
+            <div class="avatar">👤</div>
+            <div class="info">
+                <h3 id="playerName">Damon</h3>
+                <p id="playerAge">23 tuổi</p>
+            </div>
+            <div class="player-status">
+                <div id="currentHSK">HSK 4</div>
+                <div id="playerRank">Đồng</div>
+            </div>
+        </div>
     </div>
 
-    <!-- MENU TRANG CHỦ -->
-    <div class="menu">
-        <div class="card blue" onclick="location.href='gamecenter.html'">
+    <div class="container">
+        <a href="gamecenter.html" class="card blue">
             🎮 MINI GAME HSK
             <span>Học mà chơi</span>
-        </div>
-        <div class="card orange" onclick="location.href='tuvung.html'">
+        </a>
+
+        <a href="vocab.html" class="card orange">
             📚 TỪ VỰNG
             <span>HSK 1 - HSK 6</span>
-        </div>
-        <div class="card green">
+        </a>
+
+        <a href="gramma.html" class="card green">
             📝 NGỮ PHÁP
             <span>Cấu trúc ngữ pháp</span>
-        </div>
-        <div class="card purple" onclick="location.href='review.html'">
+        </a>
+
+        <a href="review.html" class="card purple">
             📖 ÔN TẬP
             <span>Từ cần luyện lại</span>
-        </div>
+        </a>
     </div>
-</div>
 
-<div class="footer">
-    <div class="nav-btn active" onclick="location.href='index.html'">
-        🏠<br>Trang chủ
-    </div>
-    <div class="nav-btn logo-btn" onclick="location.href='about.html'">
-        <img src="pic/logo.png" alt="Logo">
-    </div>
-    <div class="nav-btn" onclick="location.href='setting.html'">
-        ⚙️<br>Cài đặt
-    </div>
-</div>
+    <div class="footer">
+        <a href="index.html" class="nav-btn active">
+            <span class="icon">🏠</span>
+            Trang chủ
+        </a>
+        
+        <a href="about.html" class="logo-btn">
+            <img src="pic/logo.png" alt="Logo">
+        </a>
 
-<script src="game.js"></script>
+        <a href="setting.html" class="nav-btn">
+            <span class="icon">⚙️</span>
+            Cài đặt
+        </a>
+    </div>
+
+    <script src="game.js"></script>
 </body>
 </html>

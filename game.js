@@ -1,4 +1,63 @@
 // ==========================================
+// 0. HỆ THỐNG BẢO VỆ TRẢI NGHIỆM NGƯỜI DÙNG (CORE SHIELD)
+// ==========================================
+
+// 1. BẮT LỖI TOÀN CỤC (ANTI-CRASH)
+// Nếu có bất kỳ chức năng nào bị lỗi ngầm, app sẽ không bị kẹt mà tự động khôi phục
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    console.warn("⚠️ App phát hiện sự cố, đang tự động khôi phục...", msg);
+    
+    // Nếu có màn hình loading bị kẹt, tự động tắt nó đi
+    let loader = document.getElementById('globalLoader');
+    if(loader) loader.style.display = 'none';
+
+    // Không báo lỗi đỏ ra màn hình người dùng, giữ app vẫn chạy được các nút khác
+    return true; 
+};
+
+// 2. HÀM ĐỌC DỮ LIỆU SIÊU AN TOÀN (ANTI-CORRUPTION)
+// Dùng cái này thay cho JSON.parse(localStorage...) để không bao giờ bị lỗi kẹt app do rác data
+function safeGetLocal(key, defaultVal = "[]") {
+    try {
+        let data = localStorage.getItem(key);
+        if (!data || data === "undefined" || data === "null") return JSON.parse(defaultVal);
+        return JSON.parse(data);
+    } catch (e) {
+        console.error(`Lỗi dữ liệu tại [${key}], đã tự động reset để cứu app.`);
+        localStorage.setItem(key, defaultVal);
+        return JSON.parse(defaultVal);
+    }
+}
+
+// 3. HÀM RENDER KHÔNG LÀM ĐƠ MÁY (ANTI-FREEZE YIELD)
+// Dùng khi cần hiển thị hàng ngàn từ vựng mà không làm điện thoại bị treo
+function renderWithoutFreezing(array, renderItemFunc, containerId, chunkSize = 50) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = ""; // Xóa cũ
+    
+    let index = 0;
+    function renderChunk() {
+        let chunkHtml = "";
+        let end = Math.min(index + chunkSize, array.length);
+        
+        for (let i = index; i < end; i++) {
+            chunkHtml += renderItemFunc(array[i], i);
+        }
+        
+        // Đẩy vào HTML bằng insertAdjacentHTML (nhanh hơn innerHTML rất nhiều)
+        container.insertAdjacentHTML('beforeend', chunkHtml);
+        index += chunkSize;
+        
+        if (index < array.length) {
+            // Nhường CPU cho điện thoại thở, sau đó render tiếp
+            requestAnimationFrame(renderChunk);
+        }
+    }
+    renderChunk();
+}
+
+// ==========================================
 // 1. QUẢN LÝ HỒ SƠ NGƯỜI CHƠI (PROFILE)
 // ==========================================
 class PlayerProfile {
@@ -100,32 +159,48 @@ class ReviewManager {
         this.reviewList = document.getElementById("reviewList");
         if (this.reviewList) this.render();
     }
+    
     render() {
-        let words = JSON.parse(localStorage.getItem("reviewWords") || "[]");
+        // 🔥 Đã thay bằng safeGetLocal ở đây (Bước 2)
+        let words = safeGetLocal("reviewWords", "[]"); 
         const countEl = document.getElementById("reviewCount");
+        
         if (words.length === 0) {
-            this.reviewList.innerHTML = "<p style='text-align:center; color:#666;'>Bạn không có từ nào cần ôn tập.</p>";
-            if (countEl) countEl.innerText = "";
+            this.reviewList.innerHTML = `
+                <div class="review-empty-box">
+                    <div class="review-empty-icon">🎉</div>
+                    <div class="review-empty-title">Tuyệt vời!</div>
+                    <div class="review-empty-desc">Bạn không có từ nào cần ôn tập.<br>Hãy tiếp tục thử sức với các Mini Game nhé!</div>
+                </div>`;
+            if (countEl) countEl.style.display = "none";
             return;
         }
-        if (countEl) countEl.innerText = `Số từ cần ôn: ${words.length}`;
+
+        if (countEl) {
+            countEl.style.display = "inline-block";
+            countEl.innerText = `${words.length} từ cần ôn`;
+        }
+
         this.reviewList.innerHTML = words.map((item, i) => `
-            <div class="word-card" style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
+            <div class="review-word-card">
+                <div class="review-word-info">
                     <div class="hanzi">${item.word || item.simplified}</div>
-                    <div class="pinyin">${item.pinyin}</div>
-                    <div class="meaning">${item.meaning || item.english}</div>
+                    <div class="pinyin">${item.pinyin || ''}</div>
+                    <div class="meaning">${item.meaning || item.english || ''}</div>
                 </div>
-                <button onclick="removeReviewWord(${i})" style="padding:8px 15px; background:#4caf50; color:white; border:none; border-radius:8px;">Đã thuộc</button>
+                <button class="btn-mastered" onclick="removeReviewWord(${i})">✓ Đã thuộc</button>
             </div>`).join('');
     }
+
     removeWord(index) {
-        let words = JSON.parse(localStorage.getItem("reviewWords") || "[]");
+        // 🔥 Đã thay bằng safeGetLocal ở đây (Bước 2)
+        let words = safeGetLocal("reviewWords", "[]"); 
         words.splice(index, 1);
         localStorage.setItem("reviewWords", JSON.stringify(words));
         this.render();
     }
 }
+
 
 // ==========================================
 // 5. QUẢN LÝ MINI GAME (SPEED GAME)
@@ -181,12 +256,22 @@ class SpeedGameManager {
         }
     }
 
+    // 1. Cập nhật hàm setMode để chuẩn khớp với class CSS tạo viền màu Xanh/Đỏ
     setMode(mode) {
         this.mode = mode;
-        document.getElementById("easyModeCard").classList.remove("active");
-        document.getElementById("hardModeCard").classList.remove("active");
-        document.getElementById(mode + "ModeCard").classList.add("active");
+        
+        // Gỡ bỏ hiệu ứng màu đang chọn ở cả 2 nút
+        document.getElementById("easyModeCard").classList.remove("active-easy", "active");
+        document.getElementById("hardModeCard").classList.remove("active-hard", "active");
+        
+        // Thêm màu tương ứng cho nút được chọn
+        if (mode === 'easy') {
+            document.getElementById("easyModeCard").classList.add("active-easy");
+        } else {
+            document.getElementById("hardModeCard").classList.add("active-hard");
+        }
     }
+
 
     async start() {
         let startHsk = parseInt(this.startHskSelect.value);
@@ -238,6 +323,7 @@ class SpeedGameManager {
         this.renderQuestion();
     }
 
+    // 2. Cập nhật hàm renderQuestion để ẩn Pinyin khi chơi Khó
     renderQuestion() {
         if (this.currentIndex >= this.gameWords.length) {
             this.endGame();
@@ -264,13 +350,25 @@ class SpeedGameManager {
 
         const grid = document.getElementById("optionsGrid");
         grid.innerHTML = "";
+        
         options.forEach(opt => {
             let btn = document.createElement("button");
-            btn.className = "option-btn";
+            // Thêm class để CSS trong style.css tự động bắt giao diện
+            btn.className = "option-btn"; 
             
             let textPinyin = opt.pinyin || "";
             let textMean = opt.meaning || opt.english || "";
-            btn.innerHTML = `<span style="color:#333;">${textPinyin}</span><br><span style="font-size:14px; font-weight:normal; color:#555;">${textMean}</span>`;
+            
+            // ===============================================
+            // LOGIC PHÂN LOẠI CHẾ ĐỘ CHƠI TẠI ĐÂY
+            // ===============================================
+            if (this.mode === 'hard') {
+                // CHẾ ĐỘ KHÓ: Chỉ hiển thị Nghĩa, không có Pinyin
+                btn.innerHTML = `<span style="font-size:16px; font-weight:bold; color:#333;">${textMean}</span>`;
+            } else {
+                // CHẾ ĐỘ DỄ: Hiển thị cả Pinyin và Nghĩa
+                btn.innerHTML = `<span style="color:#333;">${textPinyin}</span><br><span style="font-size:14px; font-weight:normal; color:#555;">${textMean}</span>`;
+            }
             
             btn.onclick = () => this.checkAnswer(opt, currentWord);
             grid.appendChild(btn);
@@ -392,3 +490,19 @@ function leaveGame() {
     if (app && app.speedGame) clearInterval(app.speedGame.timer);
     window.location.href = 'gamecenter.html';
 }
+// ==========================================
+// 7. BẢO VỆ MÀN HÌNH LOADING (BƯỚC 3)
+// ==========================================
+window.addEventListener('DOMContentLoaded', () => {
+    // Tự động tìm xem có màn hình loading nào không
+    let loader = document.getElementById('globalLoader') || document.getElementById('loadingScreen');
+    if (loader) {
+        // Failsafe: Ép buộc ẩn loading sau đúng 3 giây (3000ms) để cứu app khỏi bị kẹt
+        setTimeout(() => {
+            if (loader.style.display !== 'none') {
+                loader.style.display = 'none';
+                console.log("⚠️ Đã tự động tắt màn hình Loading bị kẹt!");
+            }
+        }, 3000);
+    }
+});

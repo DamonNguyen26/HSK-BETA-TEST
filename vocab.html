@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HSK Game - Ôn Tập Từ Vựng</title>
+    <title>HSK Game - Từ Vựng</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,19 +22,26 @@
         </div>
     </div>
 
-    <div class="container">
-        
-        <div class="review-banner">
-            <div class="review-banner-text">
-                <h2>📖 ÔN TẬP TỪ VỰNG</h2>
-                <p>Các từ bạn trả lời chưa đúng khi chơi game</p>
-            </div>
-            <div id="reviewCount" class="review-count-badge" style="display: none;">
-                0 từ
-            </div>
+    <div class="hsk-fixed-wrapper">
+        <div class="hsk-tabs">
+            <div class="hsk-tab active-tab" onclick="changeHSK(1, this)">HSK 1</div>
+            <div class="hsk-tab" onclick="changeHSK(2, this)">HSK 2</div>
+            <div class="hsk-tab" onclick="changeHSK(3, this)">HSK 3</div>
+            <div class="hsk-tab" onclick="changeHSK(4, this)">HSK 4</div>
+            <div class="hsk-tab" onclick="changeHSK(5, this)">HSK 5</div>
+            <div class="hsk-tab" onclick="changeHSK(6, this)">HSK 6</div>
         </div>
+    </div>
 
-        <div id="reviewList"></div>
+    <div class="container has-hsk">
+        
+        <div id="vocabList"></div>
+
+        <div id="devMessage" class="dev-box" style="display: none;">
+            <img src="pic/baotri.png" class="maintain-img">
+            <h2 style="font-size: 20px; color: #333;">🚧 Đang Cập Nhật</h2>
+            <p style="margin-top: 10px; color: #666; font-size: 14px;">Dữ liệu từ vựng cấp độ này đang được biên soạn.</p>
+        </div>
 
     </div>
 

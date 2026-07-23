@@ -1,145 +1,136 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Thần Tốc HSK</title>
-<link rel="stylesheet" href="style.css">
-<style>
-    /* CSS riêng cho trang Game */
-    .game-setup { text-align: center; }
-    .setup-group { margin: 15px 0; }
-    .setup-group input[type="number"] { width: 80px; text-align: center; font-size: 18px; padding: 5px; }
-    
-    .mode-container { display: flex; gap: 10px; margin-top: 15px; }
-    .mode-card { flex: 1; background: #fff; padding: 15px; border-radius: 12px; border: 2px solid transparent; opacity: 0.5; transition: 0.3s; cursor: pointer; }
-    .mode-card.active { border-color: #2196f3; opacity: 1; box-shadow: 0 4px 10px rgba(33,150,243,0.3); }
-    .mode-card h4 { margin: 0 0 10px 0; color: #333; }
-    .mode-card select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
-    
-    .play-box { text-align: center; }
-    .timer-bar { background: #eee; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 20px; }
-    .timer-fill { background: #ff5722; height: 100%; width: 100%; transition: width 1s linear; }
-    
-    .question-hanzi { font-size: 60px; font-weight: bold; margin: 20px 0; color: #e91e63; }
-    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .option-btn { 
-        padding: 15px; 
-        background: white; 
-        color: #333; /* Thêm dòng này để ép chữ thành màu đen */
-        border: 2px solid #ddd; 
-        border-radius: 12px; 
-        font-size: 16px; 
-        font-weight: bold; 
-        cursor: pointer; 
-        transition: 0.2s; 
-    }
-    .option-btn:active { background: #eee; }
-    
-    .result-box { text-align: center; background: white; padding: 20px; border-radius: 12px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSK Game - Thần Tốc HSK</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-    <div class="profile">
-        <div class="avatar">👤</div>
-        <div class="info">
-            <h3 id="playerName">Damon Nguyen</h3>
-            <p id="playerAge">18 tuổi</p>
-        </div>
-        <div class="player-status">
-            <div id="currentHSK">HSK 1</div>
-            <div id="playerRank">Đồng</div>
+    <div class="header-fixed">
+        <div class="profile">
+            <div class="avatar">👤</div>
+            <div class="info">
+                <h3 id="playerName">Damon</h3>
+                <p id="playerAge">23 tuổi</p>
+            </div>
+            <div class="player-status">
+                <div id="currentHSK">HSK 4</div>
+                <div id="playerRank">Đồng</div>
+            </div>
         </div>
     </div>
 
-    <!-- Đổi href thành hàm leaveGame() -->
-    <button class="back-btn" onclick="leaveGame()">← Rời Game</button>
-    
-    <!-- MÀN HÌNH CÀI ĐẶT GAME -->
-    <div id="setupScreen" class="game-setup">
-        <h3>⚡ THẦN TỐC HSK</h3>
+    <div class="container">
         
-        <!-- Chọn phạm vi HSK (Mới thêm) -->
-        <div class="setup-group" style="background: #f9f9f9; padding: 10px; border-radius: 12px; margin-bottom: 15px;">
-            <label><b>Phạm vi từ vựng:</b></label>
-            <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 8px;">
-                <select id="startHskSelect" class="option-btn" style="padding: 8px; width: 40%;" onchange="checkGameHsk()">
-                    <option value="1">HSK 1</option>
-                    <option value="2">HSK 2</option>
-                    <option value="3">HSK 3</option>
-                    <option value="4">HSK 4</option>
-                    <option value="5">HSK 5</option>
-                    <option value="6">HSK 6</option>
-                </select>
-                <b>đến</b>
-                <select id="endHskSelect" class="option-btn" style="padding: 8px; width: 40%;" onchange="checkGameHsk()">
-                    <option value="1">HSK 1</option>
-                    <option value="2">HSK 2</option>
-                    <option value="3">HSK 3</option>
-                    <option value="4">HSK 4</option>
-                    <option value="5">HSK 5</option>
-                    <option value="6">HSK 6</option>
-                </select>
+        <div id="setupScreen" class="setup-card">
+            
+            <div class="setup-header">
+                <h2 class="setup-title">⚡ THẦN TỐC HSK</h2>
+                <p class="setup-subtitle">Tùy chỉnh thông số bài luyện tập phản xạ</p>
             </div>
+
+            <div class="setup-group">
+                <div class="setup-label">📌 Phạm vi từ vựng:</div>
+                <div class="hsk-range-row">
+                    <select id="startHskSelect" onchange="checkGameHsk()">
+                        <option value="1">HSK 1</option>
+                        <option value="2">HSK 2</option>
+                        <option value="3">HSK 3</option>
+                        <option value="4">HSK 4</option>
+                        <option value="5">HSK 5</option>
+                        <option value="6">HSK 6</option>
+                    </select>
+                    <span class="range-separator">đến</span>
+                    <select id="endHskSelect" onchange="checkGameHsk()">
+                        <option value="1">HSK 1</option>
+                        <option value="2">HSK 2</option>
+                        <option value="3">HSK 3</option>
+                        <option value="4">HSK 4</option>
+                        <option value="5">HSK 5</option>
+                        <option value="6">HSK 6</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="setup-group">
+                <div class="setup-label">🔢 Số lượng câu hỏi:</div>
+                <input type="number" id="questionCount" class="setup-input-full" min="10" max="100" step="10" value="10">
+            </div>
+
+            <div class="setup-group">
+                <div class="setup-label">⚙️ Chế độ chơi:</div>
+                <div class="mode-grid">
+                    
+                    <div id="easyModeCard" class="mode-card easy-card" onclick="selectGameMode('easy')">
+                        <h4>🟢 DỄ</h4>
+                        <p>Tổng thời gian</p>
+                        <select id="easyTimeSelect" onclick="event.stopPropagation()"></select>
+                    </div>
+                    
+                    <div id="hardModeCard" class="mode-card hard-card" onclick="selectGameMode('hard')">
+                        <h4>🔴 KHÓ</h4>
+                        <p>Thời gian / câu</p>
+                        <select id="hardTimeSelect" onclick="event.stopPropagation()">
+                            <option value="7">7 giây / câu</option>
+                            <option value="5" selected>5 giây / câu</option>
+                            <option value="3">3 giây / câu</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <button class="btn-start-game" onclick="startSpeedGame()">🚀 BẮT ĐẦU CHƠI</button>
         </div>
 
-        <div class="setup-group">
-            <label><b>Số lượng câu hỏi:</b></label><br>
-            <input type="number" id="questionCount" min="10" max="100" step="10" value="10">
-            <p style="font-size: 12px; color:#666;">(Bội số của 10, Từ 10 - 100)</p>
-        </div>
-
-        <div class="mode-container">
-            <div class="mode-card active" id="easyModeCard" onclick="selectGameMode('easy')">
-                <h4>🟢 DỄ</h4>
-                <p style="font-size: 12px;">Tổng thời gian bài thi</p>
-                <select id="easyTimeSelect" onclick="event.stopPropagation()"></select>
+        <div id="playScreen" class="game-play-box" style="display: none;">
+            <h3 id="progressText" style="color: #888;">Câu 1/10</h3>
+            
+            <div class="timer-bar-container">
+                <div id="timerFill" class="timer-bar-fill"></div>
             </div>
             
-            <div class="mode-card" id="hardModeCard" onclick="selectGameMode('hard')">
-                <h4>🔴 KHÓ</h4>
-                <p style="font-size: 12px;">Thời gian mỗi câu</p>
-                <select id="hardTimeSelect" onclick="event.stopPropagation()">
-                    <option value="7">7 giây / câu</option>
-                    <option value="5" selected>5 giây / câu</option>
-                    <option value="3">3 giây / câu</option>
-                </select>
-            </div>
+            <p id="timerText" style="font-weight: bold; color: #f44336;">0:00</p>
+            
+            <h1 id="questionHanzi" class="hanzi-display">汉字</h1>
+            
+            <div id="optionsGrid" class="options-grid">
+                </div>
         </div>
-        <br>
-        <button onclick="startSpeedGame()" style="width: 100%; padding: 15px; font-size: 18px; background: #2196f3; color: white; border: none; border-radius: 12px;">🚀 Bắt Đầu</button>
+
+        <div id="resultScreen" class="game-play-box" style="display: none; padding: 35px 20px;">
+            <h2 style="font-size: 28px; color: #333;">🎉 HOÀN THÀNH!</h2>
+            <p style="color: #666; margin-top: 8px;">Điểm số của bạn:</p>
+            <h1 id="scoreText" style="color: #4caf50; font-size: 55px; margin: 15px 0 25px 0;">10/10</h1>
+            
+            <button class="btn-game-action btn-replay" onclick="resetSpeedGame()">
+                🔄 CHƠI LẠI
+            </button>
+            <button class="btn-game-action btn-leave" onclick="leaveGame()">
+                🚪 RỜI GAME
+            </button>
+        </div>
+
     </div>
 
-
-    <!-- MÀN HÌNH CHƠI GAME -->
-    <div id="playScreen" class="play-box" style="display: none;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <b id="progressText">Câu 1/10</b>
-            <b id="timerText" style="color: #ff5722;">00:00</b>
-        </div>
-        <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+    <div class="footer">
+        <a href="index.html" class="nav-btn">
+            <span class="icon">🏠</span>
+            Trang chủ
+        </a>
         
-        <div class="question-hanzi" id="questionHanzi">爱</div>
-        
-        <div class="options-grid" id="optionsGrid">
-            <!-- Nút đáp án sinh tự động ở đây -->
-        </div>
+        <a href="index.html" class="logo-btn">
+            <img src="pic/logo.png" alt="Logo">
+        </a>
+
+        <a href="setting.html" class="nav-btn">
+            <span class="icon">⚙️</span>
+            Cài đặt
+        </a>
     </div>
 
-    <!-- MÀN HÌNH KẾT QUẢ -->
-    <div id="resultScreen" class="result-box" style="display: none;">
-        <h3>🎉 HOÀN THÀNH!</h3>
-        <h1 id="scoreText" style="color: #4caf50; margin: 10px 0;">8/10</h1>
-        <p>Các câu sai hoặc chưa kịp làm đã được lưu vào <b>Ôn tập</b>.</p>
-        <br>
-    <!-- Đổi location.reload() thành hàm resetSpeedGame() -->
-    <button onclick="resetSpeedGame()" style="width: 100%; padding: 12px; background: #2196f3; color: white; border: none; border-radius: 8px;">🔄 Chơi lại</button>
-    </div>
-
-</div>
-
-<script src="game.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
