@@ -203,50 +203,47 @@ class ReviewManager {
 
 
 // ==========================================
-// 5. QUẢN LÝ MINI GAME (SPEED GAME)
+// 5. QUẢN LÝ GAME 1 (THẦN TỐC HSK)
 // ==========================================
 class SpeedGameManager {
     constructor(profile) {
         this.profile = profile; 
         this.setupScreen = document.getElementById("setupScreen");
         if (!this.setupScreen) return;
-
+        
         this.qCountInput = document.getElementById("questionCount");
         this.easySelect = document.getElementById("easyTimeSelect");
-        
         this.startHskSelect = document.getElementById("startHskSelect");
         this.endHskSelect = document.getElementById("endHskSelect");
-
+        this.gameModeTypeSelect = document.getElementById("gameModeType"); // Lấy ô chọn dạng đề
+        
         this.mode = 'easy'; 
+        this.quizType = 'hanzi_to_meaning'; // Biến lưu dạng đề
         this.allWords = [];
         this.gameWords = [];
         this.currentIndex = 0;
         this.score = 0;
+        
         this.timer = null;
-
+        this.elapsedTimer = null; 
+        this.totalTimeElapsed = 0; 
+        this.userHistory = []; 
+        
         this.qCountInput.addEventListener('change', () => this.generateEasyTimeOptions());
         this.generateEasyTimeOptions();
     }
-
-    // Tự động kiểm tra nếu HSK bắt đầu > HSK kết thúc
     checkHsk() {
         let start = parseInt(this.startHskSelect.value);
         let end = parseInt(this.endHskSelect.value);
-
-        if (start > end) {
-            this.endHskSelect.value = start;
-        }
+        if (start > end) this.endHskSelect.value = start;
     }
-
     generateEasyTimeOptions() {
         let count = parseInt(this.qCountInput.value);
         if (count < 10) count = 10;
         if (count > 100) count = 100;
-        
         let minMin = count / 10;          
         let maxMin = (count / 10) * 1.5;  
         let step = (count <= 50) ? 0.5 : 1; 
-        
         this.easySelect.innerHTML = "";
         for (let i = minMin; i <= maxMin; i += step) {
             let minutes = Math.floor(i);
@@ -255,86 +252,71 @@ class SpeedGameManager {
             this.easySelect.innerHTML += `<option value="${i * 60}">${text}</option>`; 
         }
     }
-
-    // 1. Cập nhật hàm setMode để chuẩn khớp với class CSS tạo viền màu Xanh/Đỏ
     setMode(mode) {
         this.mode = mode;
-        
-        // Gỡ bỏ hiệu ứng màu đang chọn ở cả 2 nút
         document.getElementById("easyModeCard").classList.remove("active-easy", "active");
         document.getElementById("hardModeCard").classList.remove("active-hard", "active");
-        
-        // Thêm màu tương ứng cho nút được chọn
         if (mode === 'easy') {
             document.getElementById("easyModeCard").classList.add("active-easy");
         } else {
             document.getElementById("hardModeCard").classList.add("active-hard");
         }
     }
-
-
     async start() {
         let startHsk = parseInt(this.startHskSelect.value);
         let endHsk = parseInt(this.endHskSelect.value);
+        this.quizType = this.gameModeTypeSelect ? this.gameModeTypeSelect.value : 'hanzi_to_meaning';
+        
         this.allWords = [];
-
         try {
-            // Lặp và đọc gộp các file JSON từ startHsk đến endHsk
             for (let level = startHsk; level <= endHsk; level++) {
                 let res = await fetch(`hsk-${level}.json`);
                 if (res.ok) {
                     let data = await res.json();
-                    if (data.terms) {
-                        this.allWords = this.allWords.concat(data.terms);
-                    }
+                    if (data.terms) this.allWords = this.allWords.concat(data.terms);
                 }
             }
-
-            if (this.allWords.length === 0) {
-                alert("Không tìm thấy dữ liệu từ vựng cho HSK đã chọn!");
-                return;
-            }
-
-        } catch(e) {
-            alert("Lỗi tải dữ liệu file JSON!");
-            return;
-        }
+            if (this.allWords.length === 0) { alert("Không tìm thấy dữ liệu từ vựng!"); return; }
+        } catch(e) { alert("Lỗi tải dữ liệu file JSON!"); return; }
 
         let reqCount = parseInt(this.qCountInput.value);
-        if(this.allWords.length < reqCount) {
-            reqCount = this.allWords.length; 
-        }
-
+        if(this.allWords.length < reqCount) reqCount = this.allWords.length; 
         let shuffled = [...this.allWords].sort(() => 0.5 - Math.random());
         this.gameWords = shuffled.slice(0, reqCount);
 
         this.setupScreen.style.display = "none";
         document.getElementById("playScreen").style.display = "block";
-        
         this.currentIndex = 0;
         this.score = 0;
+        this.userHistory = []; 
+        
+        clearInterval(this.elapsedTimer);
+        this.totalTimeElapsed = 0;
+        this.elapsedTimer = setInterval(() => { this.totalTimeElapsed++; }, 1000);
 
         if (this.mode === 'easy') {
             this.timeLeft = parseInt(this.easySelect.value);
             this.maxTime = this.timeLeft;
             this.startGlobalTimer();
         }
-
         this.renderQuestion();
     }
-
-    // 2. Cập nhật hàm renderQuestion để ẩn Pinyin khi chơi Khó
     renderQuestion() {
-        if (this.currentIndex >= this.gameWords.length) {
-            this.endGame();
-            return;
-        }
-
+        if (this.currentIndex >= this.gameWords.length) { this.endGame(); return; }
         let currentWord = this.gameWords[this.currentIndex];
         let currentHanzi = currentWord.word || currentWord.simplified;
+        let currentMeaning = currentWord.meaning || currentWord.english;
 
         document.getElementById("progressText").innerText = `Câu ${this.currentIndex + 1}/${this.gameWords.length}`;
-        document.getElementById("questionHanzi").innerText = currentHanzi;
+
+        // ĐỔI HIỂN THỊ ĐỀ THI TÙY THEO DẠNG ĐÃ CHỌN
+        if (this.quizType === 'meaning_to_hanzi') {
+            document.getElementById("questionHanzi").innerText = currentMeaning;
+            document.getElementById("questionHanzi").style.fontSize = "36px"; // Thu nhỏ font chữ 1 chút nếu là tiếng Việt dài
+        } else {
+            document.getElementById("questionHanzi").innerText = currentHanzi;
+            document.getElementById("questionHanzi").style.fontSize = "58px";
+        }
 
         if (this.mode === 'hard') {
             this.timeLeft = parseInt(document.getElementById("hardTimeSelect").value);
@@ -342,91 +324,108 @@ class SpeedGameManager {
             this.startQuestionTimer(currentWord);
         }
 
-        // Tạo đáp án sai dựa trên trường word/simplified
-        let wrongOptions = this.allWords.filter(w => (w.word || w.simplified) !== currentHanzi)
-                                        .sort(() => 0.5 - Math.random())
-                                        .slice(0, 3);
-        let options = [currentWord, ...wrongOptions].sort(() => 0.5 - Math.random());
+        // Lọc đáp án sai dựa theo dạng đề
+        let wrongOptions = this.allWords.filter(w => {
+            let wText = (this.quizType === 'meaning_to_hanzi') ? (w.word || w.simplified) : (w.meaning || w.english);
+            let cText = (this.quizType === 'meaning_to_hanzi') ? currentHanzi : currentMeaning;
+            return wText !== cText;
+        }).sort(() => 0.5 - Math.random()).slice(0, 3);
 
+        let options = [currentWord, ...wrongOptions].sort(() => 0.5 - Math.random());
         const grid = document.getElementById("optionsGrid");
         grid.innerHTML = "";
         
         options.forEach(opt => {
             let btn = document.createElement("button");
-            // Thêm class để CSS trong style.css tự động bắt giao diện
             btn.className = "option-btn"; 
             
             let textPinyin = opt.pinyin || "";
             let textMean = opt.meaning || opt.english || "";
+            let textHanzi = opt.word || opt.simplified || "";
             
-            // ===============================================
-            // LOGIC PHÂN LOẠI CHẾ ĐỘ CHƠI TẠI ĐÂY
-            // ===============================================
-            if (this.mode === 'hard') {
-                // CHẾ ĐỘ KHÓ: Chỉ hiển thị Nghĩa, không có Pinyin
-                btn.innerHTML = `<span style="font-size:16px; font-weight:bold; color:#333;">${textMean}</span>`;
+            // RENDER CÁC NÚT ĐÁP ÁN TƯƠNG ỨNG
+            if (this.quizType === 'meaning_to_hanzi') {
+                // Đề là Nghĩa -> Đáp án là Hán tự + Pinyin
+                btn.innerHTML = `<span style="font-size:24px; font-weight:bold; color:#333;">${textHanzi}</span><br><span style="font-size:13px; color:#555;">${textPinyin}</span>`;
             } else {
-                // CHẾ ĐỘ DỄ: Hiển thị cả Pinyin và Nghĩa
-                btn.innerHTML = `<span style="color:#333;">${textPinyin}</span><br><span style="font-size:14px; font-weight:normal; color:#555;">${textMean}</span>`;
+                // Đề là Hán tự -> Đáp án theo chế độ Dễ/Khó cũ
+                if (this.mode === 'hard') {
+                    btn.innerHTML = `<span style="font-size:16px; font-weight:bold; color:#333;">${textMean}</span>`;
+                } else {
+                    btn.innerHTML = `<span style="color:#333;">${textPinyin}</span><br><span style="font-size:14px; font-weight:normal; color:#555;">${textMean}</span>`;
+                }
             }
             
             btn.onclick = () => this.checkAnswer(opt, currentWord);
             grid.appendChild(btn);
         });
     }
-
     checkAnswer(selected, correct) {
         if (this.mode === 'hard') clearInterval(this.timer); 
+        
+        let selText = (this.quizType === 'meaning_to_hanzi') ? (selected.word || selected.simplified) : (selected.meaning || selected.english);
+        let corrText = (this.quizType === 'meaning_to_hanzi') ? (correct.word || correct.simplified) : (correct.meaning || correct.english);
+        let isCorrect = (selText === corrText);
+        
+        if (isCorrect) this.score++;
+        else this.saveToReview(correct); 
+        
+        let displayCorrect = (this.quizType === 'meaning_to_hanzi') ? (correct.word || correct.simplified) : (correct.meaning || correct.english);
+        let displaySelected = (this.quizType === 'meaning_to_hanzi') ? (selected.word || selected.simplified) : (selected.meaning || selected.english);
 
-        let selText = selected.word || selected.simplified;
-        let corrText = correct.word || correct.simplified;
-
-        if (selText === corrText) {
-            this.score++;
-        } else {
-            this.saveToReview(correct); 
-        }
-
+        this.userHistory.push({
+            hanzi: correct.word || correct.simplified,
+            pinyin: correct.pinyin,
+            correctMeaning: displayCorrect,
+            selectedMeaning: displaySelected,
+            isCorrect: isCorrect,
+            quizType: this.quizType
+        });
+        
         this.currentIndex++;
         this.renderQuestion();
     }
-
     startGlobalTimer() {
         this.timer = setInterval(() => {
             this.timeLeft--;
             this.updateTimerUI();
-            
             if (this.timeLeft <= 0) {
                 clearInterval(this.timer);
-                for(let i = this.currentIndex; i < this.gameWords.length; i++) {
-                    this.saveToReview(this.gameWords[i]);
+                for(let i = this.currentIndex; i < this.gameWords.length; i++) { 
+                    let w = this.gameWords[i];
+                    this.saveToReview(w); 
+                    let displayCorrect = (this.quizType === 'meaning_to_hanzi') ? (w.word || w.simplified) : (w.meaning || w.english);
+                    this.userHistory.push({
+                        hanzi: w.word || w.simplified, pinyin: w.pinyin,
+                        correctMeaning: displayCorrect, selectedMeaning: "⏳ Hết giờ", isCorrect: false, quizType: this.quizType
+                    });
                 }
                 this.endGame();
             }
         }, 1000);
     }
-
     startQuestionTimer(currentWord) {
         clearInterval(this.timer);
         this.updateTimerUI(); 
-        
         this.timer = setInterval(() => {
             this.timeLeft--;
             this.updateTimerUI();
-            
             if (this.timeLeft <= 0) {
                 clearInterval(this.timer);
                 this.saveToReview(currentWord); 
+                let displayCorrect = (this.quizType === 'meaning_to_hanzi') ? (currentWord.word || currentWord.simplified) : (currentWord.meaning || currentWord.english);
+                this.userHistory.push({
+                    hanzi: currentWord.word || currentWord.simplified, pinyin: currentWord.pinyin,
+                    correctMeaning: displayCorrect, selectedMeaning: "⏳ Hết giờ", isCorrect: false, quizType: this.quizType
+                });
                 this.currentIndex++;
                 this.renderQuestion();
             }
         }, 1000);
     }
-
     updateTimerUI() {
         let pct = (this.timeLeft / this.maxTime) * 100;
         document.getElementById("timerFill").style.width = pct + "%";
-        
         if (this.mode === 'easy') {
             let m = Math.floor(this.timeLeft / 60);
             let s = this.timeLeft % 60;
@@ -435,26 +434,48 @@ class SpeedGameManager {
             document.getElementById("timerText").innerText = `${this.timeLeft}s`;
         }
     }
-
     saveToReview(word) {
         let words = JSON.parse(localStorage.getItem("reviewWords") || "[]");
         let targetText = word.word || word.simplified;
-
         if (!words.some(w => (w.word || w.simplified) === targetText)) {
             words.push(word);
             localStorage.setItem("reviewWords", JSON.stringify(words));
         }
     }
-
     endGame() {
         clearInterval(this.timer);
+        clearInterval(this.elapsedTimer); 
+        
         document.getElementById("playScreen").style.display = "none";
         document.getElementById("resultScreen").style.display = "block";
         document.getElementById("scoreText").innerText = `${this.score} / ${this.gameWords.length}`;
-    }
+        
+        let m = Math.floor(this.totalTimeElapsed / 60);
+        let s = this.totalTimeElapsed % 60;
+        document.getElementById("g1TotalTime").innerText = m > 0 ? `${m} phút ${s} giây` : `${s} giây`;
+        
+        let historyHtml = "";
+        this.userHistory.forEach(item => {
+            let statusClass = item.isCorrect ? "correct" : "wrong";
+            let userPickText = item.isCorrect 
+                ? `<span class="g1-highlight-correct">Đúng: ${item.selectedMeaning}</span>`
+                : `Bạn chọn: <span class="g1-highlight-wrong">${item.selectedMeaning}</span> | Đáp án: <span class="g1-highlight-correct">${item.correctMeaning}</span>`;
+            
+            let titleHeader = (item.quizType === 'meaning_to_hanzi') 
+                ? `Nghĩa: ${item.correctMeaning}` 
+                : `${item.hanzi} (${item.pinyin})`;
 
+            historyHtml += `
+                <div class="g1-history-item ${statusClass}">
+                    <div class="g1-history-hanzi">${titleHeader}</div>
+                    <div class="g1-history-detail">${userPickText}</div>
+                </div>`;
+        });
+        document.getElementById("g1HistoryList").innerHTML = historyHtml;
+    }
     resetGame() {
         clearInterval(this.timer);
+        clearInterval(this.elapsedTimer);
         this.timer = null;
         document.getElementById("resultScreen").style.display = "none";
         document.getElementById("playScreen").style.display = "none";
@@ -462,9 +483,305 @@ class SpeedGameManager {
     }
 }
 
+
 // ==========================================
-// 6. KHỞI TẠO ỨNG DỤNG & SỰ KIỆN HTML
+// 8. QUẢN LÝ GAME 2 (PINYIN GAME)
 // ==========================================
+class PinyinGameManager {
+    constructor(profile) {
+        this.profile = profile; 
+        this.setupScreen = document.getElementById("game2Setup");
+        if (!this.setupScreen) return; 
+
+        this.qCountInput = document.getElementById("g2QuestionCount");
+        this.easySelect = document.getElementById("g2EasyTimeSelect");
+        this.startHskSelect = document.getElementById("g2StartHskSelect");
+        this.endHskSelect = document.getElementById("g2EndHskSelect");
+        this.mode = 'easy'; 
+        this.allWords = [];
+        this.gameWords = [];
+        this.currentIndex = 0;
+        this.score = 0;
+        
+        this.timer = null;
+        this.elapsedTimer = null; // Bộ đếm tổng thời gian
+        this.totalTimeElapsed = 0;
+        this.userHistory = []; 
+
+        this.toneGroups = [
+            ["a", "ā", "á", "ǎ", "à"], ["e", "ē", "é", "ě", "è"],
+            ["i", "ī", "í", "ǐ", "ì"], ["o", "ō", "ó", "ǒ", "ò"],
+            ["u", "ū", "ú", "ǔ", "ù"]
+        ];
+
+        this.qCountInput.addEventListener('change', () => this.generateEasyTimeOptions());
+        this.generateEasyTimeOptions();
+        this.setMode('easy'); 
+    }
+    checkHsk() {
+        let start = parseInt(this.startHskSelect.value);
+        let end = parseInt(this.endHskSelect.value);
+        if (start > end) this.endHskSelect.value = start;
+    }
+    generateEasyTimeOptions() {
+        let count = parseInt(this.qCountInput.value);
+        if (count < 10) count = 10;
+        if (count > 100) count = 100;
+        let minMin = count / 10;          
+        let maxMin = (count / 10) * 1.5;  
+        let step = (count <= 50) ? 0.5 : 1; 
+        this.easySelect.innerHTML = "";
+        for (let i = minMin; i <= maxMin; i += step) {
+            let minutes = Math.floor(i);
+            let seconds = (i % 1) * 60;
+            let text = seconds > 0 ? `${minutes} phút ${seconds} giây` : `${minutes} phút`;
+            this.easySelect.innerHTML += `<option value="${i * 60}">${text}</option>`; 
+        }
+    }
+    setMode(mode) {
+        this.mode = mode;
+        document.getElementById("g2EasyModeCard").classList.remove("active-easy");
+        document.getElementById("g2HardModeCard").classList.remove("active-hard");
+        if (mode === 'easy') document.getElementById("g2EasyModeCard").classList.add("active-easy");
+        else document.getElementById("g2HardModeCard").classList.add("active-hard");
+    }
+    generateDistractors(correctPinyin) {
+        let distractors = new Set();
+        const swapTone = (py) => {
+            for (let group of this.toneGroups) {
+                for (let char of group) {
+                    if (py.includes(char)) {
+                        let otherTones = group.filter(t => t !== char);
+                        let randomTone = otherTones[Math.floor(Math.random() * otherTones.length)];
+                        return py.replace(char, randomTone);
+                    }
+                }
+            }
+            return py; 
+        };
+        const swapConsonant = (py) => {
+            let words = py.split(' ');
+            words = words.map(w => {
+                if (w.startsWith('zh')) return w.replace('zh', 'z');
+                if (w.startsWith('z')) return w.replace('z', 'zh');
+                if (w.startsWith('sh')) return w.replace('sh', 's');
+                if (w.startsWith('s')) return w.replace('s', 'sh');
+                if (w.startsWith('b')) return w.replace('b', 'p');
+                if (w.startsWith('p')) return w.replace('p', 'b');
+                if (w.startsWith('n')) return w.replace('n', 'l');
+                if (w.startsWith('l')) return w.replace('l', 'n');
+                return w;
+            });
+            let res = words.join(' ');
+            return res !== py ? res : swapTone(swapTone(py)); 
+        };
+        const swapEnding = (py) => {
+            let words = py.split(' ');
+            words = words.map(w => {
+                if (w.endsWith('ng')) return w.slice(0, -1);
+                if (w.endsWith('n')) return w + 'g';
+                return w;
+            });
+            let res = words.join(' ');
+            return res !== py ? res : swapTone(py + "r"); 
+        };
+        let d1 = swapTone(correctPinyin);
+        let d2 = swapConsonant(correctPinyin);
+        let d3 = swapEnding(correctPinyin);
+        [d1, d2, d3].forEach(d => { if (d !== correctPinyin) distractors.add(d); });
+        let attempts = 0;
+        while(distractors.size < 3 && attempts < 15) {
+            let temp = swapTone(correctPinyin);
+            if (temp !== correctPinyin) distractors.add(temp);
+            attempts++;
+        }
+        return Array.from(distractors).slice(0, 3);
+    }
+    async start() {
+        let startHsk = parseInt(this.startHskSelect.value);
+        let endHsk = parseInt(this.endHskSelect.value);
+        this.allWords = [];
+        try {
+            for (let level = startHsk; level <= endHsk; level++) {
+                let res = await fetch(`hsk-${level}.json`);
+                if (res.ok) {
+                    let data = await res.json();
+                    if (data.terms) this.allWords = this.allWords.concat(data.terms);
+                }
+            }
+            if (this.allWords.length === 0) return alert("Không tìm thấy dữ liệu!");
+        } catch(e) { return alert("Lỗi tải dữ liệu file JSON!"); }
+
+        let reqCount = parseInt(this.qCountInput.value);
+        if(this.allWords.length < reqCount) reqCount = this.allWords.length; 
+        let shuffled = [...this.allWords].sort(() => 0.5 - Math.random());
+        this.gameWords = shuffled.slice(0, reqCount);
+
+        this.setupScreen.style.display = "none";
+        document.getElementById("game2PlayScreen").style.display = "block";
+        this.currentIndex = 0;
+        this.score = 0;
+        this.userHistory = [];
+
+        // Bắt đầu đếm tổng thời gian chơi
+        clearInterval(this.elapsedTimer);
+        this.totalTimeElapsed = 0;
+        this.elapsedTimer = setInterval(() => { this.totalTimeElapsed++; }, 1000);
+
+        if (this.mode === 'easy') {
+            this.timeLeft = parseInt(this.easySelect.value);
+            this.maxTime = this.timeLeft;
+            this.startGlobalTimer();
+        }
+        this.renderQuestion();
+    }
+    renderQuestion() {
+        if (this.currentIndex >= this.gameWords.length) { this.endGame(); return; }
+        let currentWord = this.gameWords[this.currentIndex];
+        let currentHanzi = currentWord.word || currentWord.simplified;
+        let correctPinyin = currentWord.pinyin;
+
+        document.getElementById("g2ProgressText").innerText = `Câu ${this.currentIndex + 1}/${this.gameWords.length}`;
+        document.getElementById("g2QuestionHanzi").innerText = currentHanzi;
+
+        if (this.mode === 'hard') {
+            this.timeLeft = parseInt(document.getElementById("g2HardTimeSelect").value);
+            this.maxTime = this.timeLeft;
+            this.startQuestionTimer();
+        }
+        let wrongOptions = this.generateDistractors(correctPinyin);
+        let options = [correctPinyin, ...wrongOptions].sort(() => 0.5 - Math.random());
+        const grid = document.getElementById("g2OptionsGrid");
+        grid.innerHTML = "";
+        
+        options.forEach(opt => {
+            let btn = document.createElement("button");
+            btn.innerText = opt;
+            btn.onclick = (e) => this.checkAnswer(opt, currentWord, e.target, options);
+            grid.appendChild(btn);
+        });
+    }
+    checkAnswer(selectedPinyin, currentWord, clickedBtn, allOptionsRendered) {
+        if (this.mode === 'hard') clearInterval(this.timer); 
+        
+        let allBtns = document.getElementById("g2OptionsGrid").querySelectorAll("button");
+        allBtns.forEach(b => b.classList.add("btn-option-disabled"));
+
+        let correctPinyin = currentWord.pinyin;
+        let isCorrect = (selectedPinyin === correctPinyin);
+
+        if (isCorrect) {
+            this.score++;
+            clickedBtn.classList.add("btn-option-correct");
+        } else {
+            clickedBtn.classList.add("btn-option-wrong");
+            allBtns.forEach(b => { if(b.innerText === correctPinyin) b.classList.add("btn-option-correct"); });
+            this.saveToReview(currentWord); 
+        }
+        this.userHistory.push({
+            hanzi: currentWord.word || currentWord.simplified, correctPinyin: correctPinyin,
+            selectedPinyin: selectedPinyin, isCorrect: isCorrect, meaning: currentWord.meaning || currentWord.english
+        });
+
+        setTimeout(() => { this.currentIndex++; this.renderQuestion(); }, 800);
+    }
+    startGlobalTimer() {
+        this.timer = setInterval(() => {
+            this.timeLeft--;
+            this.updateTimerUI();
+            if (this.timeLeft <= 0) {
+                clearInterval(this.timer);
+                this.markRemainingAsWrong();
+                this.endGame();
+            }
+        }, 1000);
+    }
+    startQuestionTimer() {
+        clearInterval(this.timer);
+        this.updateTimerUI(); 
+        this.timer = setInterval(() => {
+            this.timeLeft--;
+            this.updateTimerUI();
+            if (this.timeLeft <= 0) {
+                clearInterval(this.timer);
+                let currentWord = this.gameWords[this.currentIndex];
+                this.saveToReview(currentWord); 
+                this.userHistory.push({
+                    hanzi: currentWord.word || currentWord.simplified, correctPinyin: currentWord.pinyin,
+                    selectedPinyin: "⏳ Hết giờ", isCorrect: false, meaning: currentWord.meaning || currentWord.english
+                });
+                this.currentIndex++;
+                this.renderQuestion();
+            }
+        }, 1000);
+    }
+    markRemainingAsWrong() {
+        for(let i = this.currentIndex; i < this.gameWords.length; i++) {
+            let word = this.gameWords[i];
+            this.saveToReview(word);
+            this.userHistory.push({
+                hanzi: word.word || word.simplified, correctPinyin: word.pinyin,
+                selectedPinyin: "⏳ Hết giờ", isCorrect: false, meaning: word.meaning || word.english
+            });
+        }
+    }
+    updateTimerUI() {
+        let pct = (this.timeLeft / this.maxTime) * 100;
+        document.getElementById("g2TimerFill").style.width = pct + "%";
+        if (this.mode === 'easy') {
+            let m = Math.floor(this.timeLeft / 60);
+            let s = this.timeLeft % 60;
+            document.getElementById("g2TimerText").innerText = `${m}:${s < 10 ? '0':''}${s}`;
+        } else {
+            document.getElementById("g2TimerText").innerText = `${this.timeLeft}s`;
+        }
+    }
+    saveToReview(word) {
+        let words = JSON.parse(localStorage.getItem("reviewWords") || "[]");
+        let targetText = word.word || word.simplified;
+        if (!words.some(w => (w.word || w.simplified) === targetText)) {
+            words.push(word);
+            localStorage.setItem("reviewWords", JSON.stringify(words));
+        }
+    }
+    endGame() {
+        clearInterval(this.timer);
+        clearInterval(this.elapsedTimer); // Dừng tổng thời gian
+        
+        document.getElementById("game2PlayScreen").style.display = "none";
+        document.getElementById("game2ResultScreen").style.display = "block";
+        document.getElementById("g2ScoreText").innerText = `${this.score} / ${this.gameWords.length}`;
+        
+        // Hiển thị tổng thời gian
+        let m = Math.floor(this.totalTimeElapsed / 60);
+        let s = this.totalTimeElapsed % 60;
+        document.getElementById("g2TotalTime").innerText = m > 0 ? `${m} phút ${s} giây` : `${s} giây`;
+        
+        let historyHtml = "";
+        this.userHistory.forEach(item => {
+            let statusClass = item.isCorrect ? "correct" : "wrong";
+            let userPickText = item.isCorrect 
+                ? `<span class="g2-highlight-correct">Đúng: ${item.selectedPinyin}</span>`
+                : `Bạn chọn: <span class="g2-highlight-wrong">${item.selectedPinyin}</span> | Đáp án: <span class="g2-highlight-correct">${item.correctPinyin}</span>`;
+            historyHtml += `
+                <div class="g2-history-item ${statusClass}">
+                    <div class="g2-history-hanzi">${item.hanzi} - ${item.meaning}</div>
+                    <div class="g2-history-detail">${userPickText}</div>
+                </div>`;
+        });
+        document.getElementById("g2HistoryList").innerHTML = historyHtml;
+    }
+    resetGame() {
+        clearInterval(this.timer);
+        clearInterval(this.elapsedTimer);
+        this.timer = null;
+        document.getElementById("game2ResultScreen").style.display = "none";
+        document.getElementById("game2PlayScreen").style.display = "none";
+        this.setupScreen.style.display = "block";
+    }
+}
+
+
 class HSKGameApp {
     constructor() {
         this.profile = new PlayerProfile();
@@ -473,12 +790,20 @@ class HSKGameApp {
             this.setting = new SettingManager(this.profile);
             this.vocab = new VocabManager();
             this.review = new ReviewManager();
-            this.speedGame = new SpeedGameManager(this.profile);
+            
+            // Tự động detect xem người dùng đang mở trang game nào
+            if (document.getElementById("setupScreen")) {
+                this.speedGame = new SpeedGameManager(this.profile);
+            }
+            if (document.getElementById("game2Setup")) {
+                this.pinyinGame = new PinyinGameManager(this.profile);
+            }
         };
     }
 }
 const app = new HSKGameApp();
 
+// Các hàm Global cũ (giữ nguyên)
 function saveSetting() { app.setting.saveSettings(); }
 function changeHSK(level, element) { app.vocab.changeTab(level, element); }
 function removeReviewWord(index) { app.review.removeWord(index); }
@@ -490,6 +815,19 @@ function leaveGame() {
     if (app && app.speedGame) clearInterval(app.speedGame.timer);
     window.location.href = 'gamecenter.html';
 }
+
+// ==========================================
+// THÊM: Các hàm Global mới cho Game 2
+// ==========================================
+function selectGame2Mode(mode) { app.pinyinGame.setMode(mode); }
+function startGame2() { app.pinyinGame.start(); }
+function checkGame2Hsk() { app.pinyinGame.checkHsk(); }
+function resetGame2() { app.pinyinGame.resetGame(); }
+function leaveGame2() {
+    if (app && app.pinyinGame) clearInterval(app.pinyinGame.timer);
+    window.location.href = 'gamecenter.html';
+}
+
 // ==========================================
 // 7. BẢO VỆ MÀN HÌNH LOADING (BƯỚC 3)
 // ==========================================
